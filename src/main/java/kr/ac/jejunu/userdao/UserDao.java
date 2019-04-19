@@ -1,174 +1,59 @@
 package kr.ac.jejunu.userdao;
 
-import javax.sql.DataSource;
+import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.jdbc.core.JdbcTemplate;
+
 import java.sql.*;
 
 public class UserDao {
-    private DataSource dataSource;
-    public UserDao(DataSource dataSource) {
+    private final JejuJdbcTemplate jdbcTemplate;
+    //private final JejuJdbcTemplate jejuJdbcTemplate = new JejuJdbcTemplate(this);
 
-        this.dataSource = dataSource;
+    public UserDao(JejuJdbcTemplate jdbcTemplate) {
+        this.jdbcTemplate = jdbcTemplate;
     }
+
 
     public User get(Long id) throws ClassNotFoundException, SQLException {
-        Connection connection = null;
-        PreparedStatement preparedStatement = null;
-        ResultSet resultSet = null;
-        User user = null;
+        String sql = "select * from userinfo where id = ?";
+        Object[] params = new Object[] {id};
+        User result = null;
         try {
-            connection = dataSource.getConnection();
-
-            StatementStrategy statementStrategy = new GetStatementStrategy(id);
-            preparedStatement = statementStrategy.makePreparedStatement(connection);
-
-            resultSet = preparedStatement.executeQuery();
-            if(resultSet.next()){
-                user = new User();
-                user.setId(resultSet.getLong("id"));
-                user.setName(resultSet.getString("name"));
-                user.setPassword(resultSet.getString("password"));
-
-            }
-        } finally {
-            if(resultSet != null){
-                try {
-                    resultSet.close();
-                } catch (SQLException e) {
-                    e.printStackTrace();
-                }
-            }
-            if(preparedStatement != null){
-                try {
-                    preparedStatement.close();
-                } catch (SQLException e) {
-                    e.printStackTrace();
-                }
-            }
-            if(connection != null){
-                try {
-                    connection.close();
-                } catch (SQLException e) {
-                    e.printStackTrace();
-                }
-            }
+            result = jdbcTemplate.queryForObject(sql, params, (rs, rowNum) -> {
+                User user = new User();
+                user.setId(rs.getLong("id"));
+                user.setName(rs.getString("name"));
+                user.setPassword(rs.getString("password"));
+                return user;
+            });
+        } catch (EmptyResultDataAccessException e) {
 
         }
-
-        //리턴
-        return user;
+        return result;
     }
 
+
     public Long add(User user) throws SQLException, ClassNotFoundException {
+        String sql = "insert into userinfo(name, password) values(?, ?)";
+        Object[] params = new Object[] {user.getName(), user.getPassword()};
+        return jdbcTemplate.insert(sql, params);
+    }
 
-        Connection connection = null;
-        PreparedStatement preparedStatement = null;
-        Long id;
-        try {
-            connection = dataSource.getConnection();
-            StatementStrategy statementStrategy = new AddStatementStrategy(user);
-            preparedStatement = statementStrategy.makePreparedStatement(connection);
-
-            preparedStatement.executeUpdate();
-
-            id = getLastInsertId(connection);
-        } finally {
-            if(preparedStatement != null)
-                try {
-                    preparedStatement.close();
-                } catch (SQLException e) {
-                    e.printStackTrace();
-                }
-            if(connection != null)
-                try {
-                    connection.close();
-                } catch (SQLException e) {
-                    e.printStackTrace();
-                }
-        }
-        //리턴
-        return id;
+    public Long insert(String sql, Object[] params) {
+        return jdbcTemplate.insert(sql, params);
     }
 
     public void update(User user) throws SQLException {
-
-        Connection connection = null;
-        PreparedStatement preparedStatement = null;
-        try {
-            connection = dataSource.getConnection();
-
-            StatementStrategy statementStrategy = new UpdateStatementStrategy(user);
-            preparedStatement = statementStrategy.makePreparedStatement(connection);
-
-            preparedStatement.executeUpdate();
-
-        } finally {
-            if(preparedStatement != null)
-                try {
-                    preparedStatement.close();
-                } catch (SQLException e) {
-                    e.printStackTrace();
-                }
-            if(connection != null)
-                try {
-                    connection.close();
-                } catch (SQLException e) {
-                    e.printStackTrace();
-                }
-        }
-
+        String sql = "update userinfo set name = ?, password = ? where id = ?";
+        Object[] params = new Object[] {user.getName(), user.getPassword(), user.getId()};
+        jdbcTemplate.update(sql, params);
     }
 
     public void delete(Long id) throws SQLException {
-
-        Connection connection = null;
-        PreparedStatement preparedStatement = null;
-        try {
-            connection = dataSource.getConnection();
-
-            StatementStrategy statementStrategy = new DeleteStatementStrategy(id);
-            preparedStatement = statementStrategy.makePreparedStatement(connection);
-
-            preparedStatement.executeUpdate();
-
-        } finally {
-            if(preparedStatement != null)
-                try {
-                    preparedStatement.close();
-                } catch (SQLException e) {
-                    e.printStackTrace();
-                }
-            if(connection != null)
-                try {
-                    connection.close();
-                } catch (SQLException e) {
-                    e.printStackTrace();
-                }
-        }
-
+        String sql = "delete from userinfo where id = ?";
+        Object[] params = new Object[] {id};
+        jdbcTemplate.update(sql, params);
     }
-
-    public Long getLastInsertId(Connection connection) throws SQLException {
-
-        ResultSet resultSet = null;
-        Long id;
-        try {
-            PreparedStatement preparedStatement = connection.prepareStatement("select last_insert_id()");
-            resultSet = preparedStatement.executeQuery();
-            resultSet.next();
-
-            id = resultSet.getLong(1);
-        } finally {
-            if(resultSet != null)
-                try {
-                    resultSet.close();
-                } catch (SQLException e) {
-                    e.printStackTrace();
-                }
-        }
-
-        return id;
-    }
-
 
 
 }
