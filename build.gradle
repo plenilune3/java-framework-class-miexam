@@ -4,7 +4,7 @@ plugins {
 
 group = 'kr.ac.jejunu'
 version = '0.0.1-SNAPSHOT'
-sourceCompatibility = '11'
+sourceCompatibility = '1.8'
 
 ext {
     springVersion = '5.1.6.RELEASE'
